@@ -8,14 +8,14 @@ conversations = []
 # 添加对话数据
 for i in range(len(df)):
     conversations.append({
-        "id": f"identity_{i+1}",
+        "id": f"identity_{i + 1}",
         "conversations": [
             {
                 "from": "user",
                 "value": f"COCO Yes: <|vision_start|>{df.iloc[i]['image_path']}<|vision_end|>"
             },
             {
-                "from": "assistant", 
+                "from": "assistant",
                 "value": df.iloc[i]['caption']
             }
         ]

@@ -49,18 +49,19 @@ def process_func(example):
     MAX_LENGTH = 384
     input_ids, attention_mask, labels = [], [], []
     instruction = tokenizer(
-        f"<|im_start|>system\n你是一个文本分类领域的专家，你会接收到一段文本和几个潜在的分类选项，请输出文本内容的正确类型<|im_end|>\n<|im_start|>user\n{example['input']}<|im_end|>\n<|im_start|>assistant\n",
+        f"<|im_start|>system\n你是一个文本分类领域的专家，你会接收到一段文本和几个潜在的分类选项，请输出文本内容的正确类型<|im_end|>\n<|im_start|>user\n"
+        f"{example['input']}<|im_end|>\n<|im_start|>assistant\n",
         add_special_tokens=False,
     )
     response = tokenizer(f"{example['output']}", add_special_tokens=False)
     input_ids = (
-        instruction["input_ids"] + response["input_ids"] + [tokenizer.pad_token_id]
+            instruction["input_ids"] + response["input_ids"] + [tokenizer.pad_token_id]
     )
     attention_mask = instruction["attention_mask"] + response["attention_mask"] + [1]
     labels = (
-        [-100] * len(instruction["input_ids"])
-        + response["input_ids"]
-        + [tokenizer.pad_token_id]
+            [-100] * len(instruction["input_ids"])
+            + response["input_ids"]
+            + [tokenizer.pad_token_id]
     )
     if len(input_ids) > MAX_LENGTH:  # 做一个截断
         input_ids = input_ids[:MAX_LENGTH]
@@ -78,7 +79,7 @@ def predict(messages, model, tokenizer):
 
     generated_ids = model.generate(model_inputs.input_ids, max_new_tokens=512)
     generated_ids = [
-        output_ids[len(input_ids) :]
+        output_ids[len(input_ids):]
         for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
     ]
 

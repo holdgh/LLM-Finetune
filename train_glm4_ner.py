@@ -24,7 +24,7 @@ def dataset_jsonl_transfer(origin_path, new_path):
             input_text = data["text"]
             entities = data["entities"]
             match_names = ["地点", "人名", "地理实体", "组织"]
-            
+
             entity_sentence = ""
             for entity in entities:
                 entity_json = dict(entity)
@@ -34,35 +34,37 @@ def dataset_jsonl_transfer(origin_path, new_path):
                     if name in match_names:
                         entity_label = name
                         break
-                
+
                 entity_sentence += f"""{{"entity_text": "{entity_text}", "entity_label": "{entity_label}"}}"""
-            
+
             if entity_sentence == "":
                 entity_sentence = "没有找到任何实体"
-            
+
             message = {
-                "instruction": """你是一个文本实体识别领域的专家，你需要从给定的句子中提取 地点; 人名; 地理实体; 组织 实体. 以 json 格式输出, 如 {"entity_text": "南京", "entity_label": "地理实体"} 注意: 1. 输出的每一行都必须是正确的 json 字符串. 2. 找不到任何实体时, 输出"没有找到任何实体". """,
+                "instruction": """你是一个文本实体识别领域的专家，你需要从给定的句子中提取 地点; 人名; 地理实体; 组织 实体. 以 json 格式输出, 如 {"entity_text": 
+                "南京", "entity_label": "地理实体"} 注意: 1. 输出的每一行都必须是正确的 json 字符串. 2. 找不到任何实体时, 输出"没有找到任何实体". """,
                 "input": f"文本:{input_text}",
                 "output": entity_sentence,
             }
-            
+
             messages.append(message)
 
     # 保存重构后的JSONL文件
     with open(new_path, "w", encoding="utf-8") as file:
         for message in messages:
             file.write(json.dumps(message, ensure_ascii=False) + "\n")
-            
-            
+
+
 def process_func(example):
     """
     对数据集进行数据预处理，主要用于被dataset.map调用
     """
 
-    MAX_LENGTH = 384 
+    MAX_LENGTH = 384
     input_ids, attention_mask, labels = [], [], []
-    system_prompt = """你是一个文本实体识别领域的专家，你需要从给定的句子中提取 地点; 人名; 地理实体; 组织 实体. 以 json 格式输出, 如 {"entity_text": "南京", "entity_label": "地理实体"} 注意: 1. 输出的每一行都必须是正确的 json 字符串. 2. 找不到任何实体时, 输出"没有找到任何实体"."""
-    
+    system_prompt = """你是一个文本实体识别领域的专家，你需要从给定的句子中提取 地点; 人名; 地理实体; 组织 实体. 以 json 格式输出, 如 {"entity_text": "南京", 
+    "entity_label": "地理实体"} 注意: 1. 输出的每一行都必须是正确的 json 字符串. 2. 找不到任何实体时, 输出"没有找到任何实体"."""
+
     instruction = tokenizer(
         f"<|system|>\n{system_prompt}<|endoftext|>\n<|user|>\n{example['input']}<|endoftext|>\n<|assistant|>\n",
         add_special_tokens=False,
@@ -70,14 +72,14 @@ def process_func(example):
     response = tokenizer(f"{example['output']}", add_special_tokens=False)
     input_ids = instruction["input_ids"] + response["input_ids"] + [tokenizer.pad_token_id]
     attention_mask = (
-        instruction["attention_mask"] + response["attention_mask"] + [1]
+            instruction["attention_mask"] + response["attention_mask"] + [1]
     )
     labels = [-100] * len(instruction["input_ids"]) + response["input_ids"] + [tokenizer.pad_token_id]
     if len(input_ids) > MAX_LENGTH:  # 做一个截断
         input_ids = input_ids[:MAX_LENGTH]
         attention_mask = attention_mask[:MAX_LENGTH]
         labels = labels[:MAX_LENGTH]
-    return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": labels}   
+    return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": labels}
 
 
 def predict(messages, model, tokenizer):
@@ -97,15 +99,15 @@ def predict(messages, model, tokenizer):
     generated_ids = [
         output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
     ]
-    
+
     response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-    
+
     print(response)
-     
+
     return response
 
 
-model_id = "ZhipuAI/glm-4-9b-chat"    
+model_id = "ZhipuAI/glm-4-9b-chat"
 model_dir = "./ZhipuAI/glm-4-9b-chat/"
 
 # 在modelscope上下载GLM4模型到本地目录下
@@ -113,7 +115,8 @@ model_dir = snapshot_download(model_id, cache_dir="./", revision="master")
 
 # Transformers加载模型权重
 tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=False, trust_remote_code=True)
-model = AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", torch_dtype=torch.bfloat16, trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", torch_dtype=torch.bfloat16,
+                                             trust_remote_code=True)
 model.enable_input_require_grads()  # 开启梯度检查点时，要执行该方法
 
 # 加载、处理数据集和测试集
@@ -188,7 +191,7 @@ test_text_list = []
 for index, row in test_df.iterrows():
     instruction = row['instruction']
     input_value = row['input']
-    
+
     messages = [
         {"role": "system", "content": f"{instruction}"},
         {"role": "user", "content": f"{input_value}"}
